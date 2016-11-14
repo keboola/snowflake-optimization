@@ -49,7 +49,7 @@ $matrix = [
         "splitFiles" => 2
     ],
     [
-        "rows" => 100000,
+        "rows" => 10000,
         "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
         "splitFiles" => 5
     ]
