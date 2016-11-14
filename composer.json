@@ -1,0 +1,17 @@
+{
+  "name": "keboola/storage-api-cli",
+  "authors": [
+    {
+      "name": "Ondrej Hlavacek",
+      "email": "ondrej.hlavace@keboola.com"
+    }
+  ],
+  "license": "MIT",
+	"require": {
+		"keboola/csv": "~1.0",
+		"keboola/php-temp": "~0.1"
+	},
+  "autoload": {
+    "psr-0": {"Keboola\\Snowflake\\Optimization": "src/"}
+  }
+}
