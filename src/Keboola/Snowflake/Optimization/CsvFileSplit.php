@@ -10,7 +10,7 @@ namespace Keboola\Snowflake\Optimization;
 
 use Keboola\Csv\CsvFile;
 
-class CsvSplit
+class CsvFileSplit
 {
     public function generateFile(CsvFile $csv, $rows, $row) {
         for ($i = 0; $i < $rows; $i++) {

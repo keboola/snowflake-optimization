@@ -85,66 +85,11 @@ foreach($matrix as $parameters) {
 
     $csv->rewind();
 
-    // upload files to S3
-
-    $credentials = new \Aws\Credentials\Credentials(
-        $config['AWS_ACCESS_KEY_ID'],
-        $config['#AWS_SECRET_ACCESS_KEY']
-    );
-    $s3client = new \Aws\S3\S3Client(
-        [
-            "credentials" => $credentials,
-            "region" => $config['AWS_REGION'],
-            "version" => "2006-03-01"
-        ]
-    );
-
     $time = microtime(true);
-
-    do {
-        try {
-            $result = $s3client->upload(
-                $config['AWS_S3_BUCKET'],
-                $config['S3_KEY_PREFIX'] . "/" . $csv->getBasename(),
-                fopen($csv->getPathname(), "r")
-            );
-        } catch (\Aws\Exception\MultipartUploadException $e) {
-            print "Retrying upload: " . $e->getMessage();
-        }
-    } while (!isset($result));
-
-
+    $csvToolSplit->split($csv, $csvToolSplitFiles);
     $duration = microtime(true) - $time;
 
-    print "$sizeMB MB file uploaded to S3 in $duration seconds\n";
-
-    /**
-     * @var $splitFile \Keboola\Csv\CsvFile
-     */
-    $time = microtime(true);
-
-    // well, i have to rerun the whole thing again, as i have no idea which slices are done and slice failed
-    do {
-        try {
-            $handles = [];
-            $promises = [];
-            foreach ($csvFileSplitFiles as $key => $splitFile) {
-                $promises[] = $s3client->uploadAsync(
-                    $config['AWS_S3_BUCKET'],
-                    $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
-                    fopen($splitFile->getPathname(), "r")
-                );
-            }
-            $results = GuzzleHttp\Promise\unwrap($promises);
-            $finished = true;
-        } catch (\Aws\Exception\MultipartUploadException $e) {
-            print "Retrying upload: " . $e->getMessage();
-        }
-    } while (!isset($finished));
-
-    $duration = microtime(true) - $time;
-
-    print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
+    print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) split into {$parameters["splitFiles"]} files using CsvTool in $duration seconds\n";
 
     // cleanup
     unlink($csv->getPathname());
