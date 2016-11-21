@@ -83,11 +83,7 @@ foreach($matrix as $parameters) {
         [
             "credentials" => $credentials,
             "region" => $config['AWS_REGION'],
-            "version" => "2006-03-01",
-            "debug" => [
-                "stream_size" => 0,
-                "scrub_auth" => true
-            ]
+            "version" => "2006-03-01"
         ]
     );
 
