@@ -63,6 +63,11 @@ $matrix = [
     [
         "rows" => 80000,
         "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
+        "splitFiles" => 50
+    ],
+    [
+        "rows" => 80000,
+        "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
         "splitFiles" => 100
     ]
 ];
