@@ -79,21 +79,21 @@ foreach($matrix as $parameters) {
     // upload files to S3
 
     $credentials = new \Aws\Credentials\Credentials(
-        getenv('KBC_PARAMS_AWS_ACCESS_KEY_ID'),
-        getenv('KBC_PARAMS__AWS_SECRET_ACCESS_KEY')
+        getenv('KBC_PARAMETER_AWS_ACCESS_KEY_ID'),
+        getenv('KBC_PARAMETER__AWS_SECRET_ACCESS_KEY')
     );
     $s3client = new \Aws\S3\S3Client(
         [
             "credentials" => $credentials,
-            "region" => getenv('KBC_PARAMS_AWS_REGION'),
+            "region" => getenv('KBC_PARAMETER_AWS_REGION'),
             "version" => "2006-03-01"
         ]
     );
 
     $time = microtime(true);
     $s3client->upload(
-        getenv('KBC_PARAMS_AWS_S3_BUCKET'),
-        getenv('KBC_PARAMS_S3_KEY_PREFIX') . "/" . $csv->getBasename(),
+        getenv('KBC_PARAMETER_AWS_S3_BUCKET'),
+        getenv('KBC_PARAMETER_S3_KEY_PREFIX') . "/" . $csv->getBasename(),
         fopen($csv->getPathname(), "r")
     );
     $duration = microtime(true) - $time;
@@ -106,8 +106,8 @@ foreach($matrix as $parameters) {
     $promises = [];
     foreach ($splitFiles as $splitFile) {
         $promises[] = $s3client->uploadAsync(
-            getenv('KBC_PARAMS_AWS_S3_BUCKET'),
-            getenv('KBC_PARAMS_S3_KEY_PREFIX') . "/" . $splitFile->getBasename(),
+            getenv('KBC_PARAMETER_AWS_S3_BUCKET'),
+            getenv('KBC_PARAMETER_S3_KEY_PREFIX') . "/" . $splitFile->getBasename(),
             fopen($splitFile->getPathname(), "r")
         )->otherwise(function($reason) {
             throw new \Exception("Upload failed: " . $reason);
