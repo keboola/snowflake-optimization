@@ -30,7 +30,7 @@ $k10row = generateCell(10000, $chars);
 $k100row = generateCell(100000, $chars);
 
 $matrix = $config["matrix"];
-foreach ($matrix as $matrixItem) {
+foreach ($matrix as $key => $matrixItem) {
     $newRow = [];
     foreach ($matrixItem["row"] as $rowItem) {
         switch($rowItem) {
@@ -44,13 +44,12 @@ foreach ($matrix as $matrixItem) {
                 $newRow[] = $k100row;
                 break;
             default:
-                throw new \Exception("invalid row indentifier");
+                throw new \Exception("invalid row identifier");
                 break;
         }
     }
-    $matrixItem["row"] = $newRow;
+    $matrix[$key]["row"] = $newRow;
 }
-
 
 foreach($matrix as $parameters) {
     $temp = new Keboola\Temp\Temp();
