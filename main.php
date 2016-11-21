@@ -115,18 +115,28 @@ foreach($matrix as $parameters) {
      * @var $splitFile \Keboola\Csv\CsvFile
      */
     $time = microtime(true);
-    $promises = [];
-    foreach ($splitFiles as $splitFile) {
-        $promises[] = $s3client->uploadAsync(
-            $config['AWS_S3_BUCKET'],
-            $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
-            fopen($splitFile->getPathname(), "r")
-        )->otherwise(function($reason) {
-            throw new \Exception("Upload failed: " . $reason);
-        });
-    }
 
-    $results = GuzzleHttp\Promise\unwrap($promises);
+    // well, i have to rerun the whole thing again, as i have no idea which slices are done and slice failed
+    do {
+        try {
+            $promises = [];
+            foreach ($splitFiles as $splitFile) {
+                $promises[] = $s3client->uploadAsync(
+                    $config['AWS_S3_BUCKET'],
+                    $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
+                    fopen($splitFile->getPathname(), "r")
+                )->otherwise(
+                    function ($reason) {
+                        throw new \Exception("Upload failed: " . $reason);
+                    }
+                )
+                ;
+            }
+            $results = GuzzleHttp\Promise\unwrap($promises);
+        } catch (\Aws\Exception\MultipartUploadException $e) {
+            print "Retrying upload: " . $e->getMessage();
+        }
+    } while (!isset($result));
     $duration = microtime(true) - $time;
     print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
 }
