@@ -6,3 +6,4 @@ composer.phar
 vendor
 *.kdev4
 .kdev4
+data/

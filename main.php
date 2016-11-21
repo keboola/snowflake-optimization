@@ -4,6 +4,15 @@ ini_set('display_errors', true);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+$arguments = getopt("d::", array("data::"));
+if (!isset($arguments["data"])) {
+    print "Data folder not set.";
+    exit(1);
+}
+$config = json_decode(file_get_contents($arguments["data"] . "/config.json"), true)["parameters"];
+
+
+
 $csvSplit = new \Keboola\Snowflake\Optimization\CsvSplit();
 
 $chars = [
@@ -79,21 +88,21 @@ foreach($matrix as $parameters) {
     // upload files to S3
 
     $credentials = new \Aws\Credentials\Credentials(
-        getenv('KBC_PARAMETER_AWS_ACCESS_KEY_ID'),
-        getenv('KBC_PARAMETER__AWS_SECRET_ACCESS_KEY')
+        $config['AWS_ACCESS_KEY_ID'],
+        $config['#AWS_SECRET_ACCESS_KEY']
     );
     $s3client = new \Aws\S3\S3Client(
         [
             "credentials" => $credentials,
-            "region" => getenv('KBC_PARAMETER_AWS_REGION'),
+            "region" => $config['AWS_REGION'],
             "version" => "2006-03-01"
         ]
     );
 
     $time = microtime(true);
     $s3client->upload(
-        getenv('KBC_PARAMETER_AWS_S3_BUCKET'),
-        getenv('KBC_PARAMETER_S3_KEY_PREFIX') . "/" . $csv->getBasename(),
+        $config['AWS_S3_BUCKET'],
+        $config['S3_KEY_PREFIX'] . "/" . $csv->getBasename(),
         fopen($csv->getPathname(), "r")
     );
     $duration = microtime(true) - $time;
@@ -106,8 +115,8 @@ foreach($matrix as $parameters) {
     $promises = [];
     foreach ($splitFiles as $splitFile) {
         $promises[] = $s3client->uploadAsync(
-            getenv('KBC_PARAMETER_AWS_S3_BUCKET'),
-            getenv('KBC_PARAMETER_S3_KEY_PREFIX') . "/" . $splitFile->getBasename(),
+            $config['AWS_S3_BUCKET'],
+            $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
             fopen($splitFile->getPathname(), "r")
         )->otherwise(function($reason) {
             throw new \Exception("Upload failed: " . $reason);
