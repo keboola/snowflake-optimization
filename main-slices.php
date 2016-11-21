@@ -13,6 +13,7 @@ $config = json_decode(file_get_contents($dataFolder . "/config.json"), true)["pa
 
 $csvFileSplit = new \Keboola\Snowflake\Optimization\CsvFileSplit();
 $csvToolSplit = new \Keboola\Snowflake\Optimization\CsvToolSplit();
+$csvToolSubSplit = new \Keboola\Snowflake\Optimization\CsvToolSubSplit();
 
 $chars = [
     "\t", "\n", "a", "b", "c", "d", "e", "f"
@@ -71,9 +72,11 @@ foreach($matrix as $parameters) {
 
     $csvFileSplitFiles = [];
     $csvToolSplitFiles = [];
+    $csvToolSubSplitFiles = [];
     for ($i = 0; $i < $parameters["splitFiles"]; $i++) {
         $csvFileSplitFiles[] = new Keboola\Csv\CsvFile($temp->getTmpFolder() . "/csvfile_part_{$i}.csv");
         $csvToolSplitFiles[] = $temp->createFile("csvtool_part_{$i}.csv");
+        $csvToolSubSplitFiles[] = $temp->createFile("csvtoolsub_part_{$i}.csv");
     }
     $csv->rewind();
 
@@ -83,13 +86,18 @@ foreach($matrix as $parameters) {
 
     print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) split into {$parameters["splitFiles"]} files using CsvFile in $duration seconds\n";
 
-    $csv->rewind();
-
     $time = microtime(true);
     $csvToolSplit->split($csv, $csvToolSplitFiles);
     $duration = microtime(true) - $time;
 
     print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) split into {$parameters["splitFiles"]} files using CsvTool in $duration seconds\n";
+
+    $time = microtime(true);
+    $csvToolSubSplit->split($csv, $csvToolSubSplitFiles);
+    $duration = microtime(true) - $time;
+
+    print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) split into {$parameters["splitFiles"]} files using CsvToolSub in $duration seconds\n";
+
 
     // cleanup
     unlink($csv->getPathname());
@@ -97,6 +105,9 @@ foreach($matrix as $parameters) {
         unlink($splitFile->getPathname());
     }
     foreach ($csvToolSplitFiles as $splitFile) {
+        unlink($splitFile->getPathname());
+    }
+    foreach ($csvToolSubSplitFiles as $splitFile) {
         unlink($splitFile->getPathname());
     }
 
