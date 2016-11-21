@@ -9,9 +9,7 @@ $dataFolder = "/data";
 if (isset($arguments["data"])) {
     $dataFolder = $arguments["data"];
 }
-$config = json_decode(file_get_contents($arguments["data"] . "/config.json"), true)["parameters"];
-
-
+$config = json_decode(file_get_contents($dataFolder . "/config.json"), true)["parameters"];
 
 $csvSplit = new \Keboola\Snowflake\Optimization\CsvSplit();
 
