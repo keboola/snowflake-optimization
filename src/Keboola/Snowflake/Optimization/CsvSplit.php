@@ -20,7 +20,11 @@ class CsvSplit
 
     public function split(CsvFile $source, array $destinations) {
         while($source->current()) {
-            $destinations[mt_rand(0, count($destinations) - 1)]->writeRow($source->current());
+            /**
+             * @var $destinationCsvFile CsvFile
+             */
+            $destinationCsvFile = $destinations[mt_rand(0, count($destinations) - 1)];
+            $destinationCsvFile->writeRow($source->current());
             $source->next();
         }
     }
