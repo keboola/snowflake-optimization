@@ -125,10 +125,6 @@ foreach($matrix as $parameters) {
                     $config['AWS_S3_BUCKET'],
                     $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
                     $handles[$key]
-                )->otherwise(
-                    function ($reason) {
-                        throw new \Exception("Upload failed: " . $reason);
-                    }
                 );
             }
             $results = GuzzleHttp\Promise\unwrap($promises);
