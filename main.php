@@ -97,13 +97,11 @@ foreach($matrix as $parameters) {
 
     do {
         try {
-            $handle = fopen($csv->getPathname(), "r");
             $result = $s3client->upload(
                 $config['AWS_S3_BUCKET'],
                 $config['S3_KEY_PREFIX'] . "/" . $csv->getBasename(),
-                $handle
+                fopen($csv->getPathname(), "r")
             );
-            fclose($handle);
         } catch (\Aws\Exception\MultipartUploadException $e) {
             print "Retrying upload: " . $e->getMessage();
         }
@@ -120,25 +118,20 @@ foreach($matrix as $parameters) {
     $time = microtime(true);
 
     // well, i have to rerun the whole thing again, as i have no idea which slices are done and slice failed
-    $handles = [];
     do {
         try {
             $handles = [];
             $promises = [];
             foreach ($splitFiles as $key => $splitFile) {
-                $handles[$key] = fopen($splitFile->getPathname(), "r");
                 $promises[] = $s3client->uploadAsync(
                     $config['AWS_S3_BUCKET'],
                     $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
-                    $handles[$key]
+                    fopen($splitFile->getPathname(), "r")
                 );
             }
             $results = GuzzleHttp\Promise\unwrap($promises);
             $finished = true;
         } catch (\Aws\Exception\MultipartUploadException $e) {
-            foreach ($handles as $handle) {
-                fclose($handle);
-            }
             print "Retrying upload: " . $e->getMessage();
         }
     } while (!isset($finished));
@@ -146,7 +139,6 @@ foreach($matrix as $parameters) {
     $duration = microtime(true) - $time;
 
     print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
-    $temp->__destruct();
 
     // cleanup
     unlink($csv->getPathname());
