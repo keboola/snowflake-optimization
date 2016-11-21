@@ -126,10 +126,11 @@ foreach($matrix as $parameters) {
                 );
             }
             $results = GuzzleHttp\Promise\unwrap($promises);
+            $finished = true;
         } catch (\Aws\Exception\MultipartUploadException $e) {
             print "Retrying upload: " . $e->getMessage();
         }
-    } while (!isset($results));
+    } while (!isset($finished));
 
     $duration = microtime(true) - $time;
 
