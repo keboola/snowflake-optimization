@@ -136,7 +136,7 @@ foreach($matrix as $parameters) {
         } catch (\Aws\Exception\MultipartUploadException $e) {
             print "Retrying upload: " . $e->getMessage();
         }
-    } while (!isset($result));
+    } while (!isset($results));
     $duration = microtime(true) - $time;
     print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
 }
