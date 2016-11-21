@@ -55,6 +55,41 @@ $matrix = [
     ]
 ];
 
+
+$matrix = [
+    [
+        "rows" => 1000,
+        "row" => [$k1row],
+        "splitFiles" => 10
+    ],
+    [
+        "rows" => 10000,
+        "row" => [$k10row],
+        "splitFiles" => 2
+    ]/*,
+    [
+        "rows" => 100000,
+        "row" => [$k10row],
+        "splitFiles" => 2
+    ],
+    [
+        "rows" => 100000,
+        "row" => [$k10row],
+        "splitFiles" => 10
+    ],
+    [
+        "rows" => 10000,
+        "row" => [$k100row],
+        "splitFiles" => 2
+    ],
+    [
+        "rows" => 10000,
+        "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
+        "splitFiles" => 5
+    ]*/
+];
+
+
 foreach($matrix as $parameters) {
     $temp = new Keboola\Temp\Temp();
     $source = $temp->createFile('source.csv');
@@ -76,5 +111,46 @@ foreach($matrix as $parameters) {
     }
     $sizeMB = round($parameters["rows"] * $rowSize / 1024**2);
     print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) split into {$parameters["splitFiles"]} files in $duration seconds\n";
+    // upload files to S3
+
+    $credentials = new \Aws\Credentials\Credentials(
+        getenv('KBC_PARAMS_AWS_ACCESS_KEY_ID'),
+        getenv('KBC_PARAMS__AWS_SECRET_ACCESS_KEY')
+    );
+    $s3client = new \Aws\S3\S3Client(
+        [
+            "credentials" => $credentials,
+            "region" => getenv('KBC_PARAMS_AWS_REGION'),
+            "version" => "2006-03-01"
+        ]
+    );
+
+    $time = microtime(true);
+    $s3client->upload(
+        getenv('KBC_PARAMS_AWS_S3_BUCKET'),
+        getenv('KBC_PARAMS_S3_KEY_PREFIX') . "/" . $csv->getBasename(),
+        fopen($csv->getPathname(), "r")
+    );
+    $duration = microtime(true) - $time;
+    print "$sizeMB MB file uploaded to S3 in $duration seconds\n";
+
+    /**
+     * @var $splitFile \Keboola\Csv\CsvFile
+     */
+    $time = microtime(true);
+    $promises = [];
+    foreach ($splitFiles as $splitFile) {
+        $promises[] = $s3client->uploadAsync(
+            getenv('KBC_PARAMS_AWS_S3_BUCKET'),
+            getenv('KBC_PARAMS_S3_KEY_PREFIX') . "/" . $splitFile->getBasename(),
+            fopen($splitFile->getPathname(), "r")
+        )->otherwise(function($reason) {
+            throw new \Exception("Upload failed: " . $reason);
+        });
+    }
+
+    $results = GuzzleHttp\Promise\unwrap($promises);
+    $duration = microtime(true) - $time;
+    print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
 }
 
