@@ -55,11 +55,22 @@ foreach($matrix as $parameters) {
     $temp = new Keboola\Temp\Temp();
     $source = $temp->createFile('source.csv');
     $csv = new Keboola\Csv\CsvFile($source->getPathname());
+
+    $rowSize = 0;
+    foreach ($parameters["row"] as $cell) {
+        $rowSize += strlen($cell);
+    }
+    $sizeMB = round($parameters["rows"] * $rowSize / 1024**2);
+
+    $time = microtime(true);
     $csvSplit->generateFile($csv, $parameters["rows"], $parameters["row"], $chars);
+    $duration = microtime(true) - $time;
+
+    print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) generated in $duration seconds\n";
+
     $splitFiles = [];
     for ($i = 0; $i < $parameters["splitFiles"]; $i++) {
         $splitFiles[] = new Keboola\Csv\CsvFile($temp->getTmpFolder() . "/part_{$i}.csv");
-        usleep(100000);
     }
     $csv->rewind();
 
@@ -67,11 +78,6 @@ foreach($matrix as $parameters) {
     $csvSplit->split($csv, $splitFiles);
     $duration = microtime(true) - $time;
 
-    $rowSize = 0;
-    foreach ($parameters["row"] as $cell) {
-        $rowSize += strlen($cell);
-    }
-    $sizeMB = round($parameters["rows"] * $rowSize / 1024**2);
     print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) split into {$parameters["splitFiles"]} files in $duration seconds\n";
     // upload files to S3
 
@@ -140,5 +146,6 @@ foreach($matrix as $parameters) {
     $duration = microtime(true) - $time;
 
     print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
+    $temp->__destruct();
 }
 
