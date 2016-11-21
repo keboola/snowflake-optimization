@@ -5,9 +5,9 @@ ini_set('display_errors', true);
 require_once __DIR__ . '/vendor/autoload.php';
 
 $arguments = getopt("d::", array("data::"));
-if (!isset($arguments["data"])) {
-    print "Data folder not set.";
-    exit(1);
+$dataFolder = "/data";
+if (isset($arguments["data"])) {
+    $dataFolder = $arguments["data"];
 }
 $config = json_decode(file_get_contents($arguments["data"] . "/config.json"), true)["parameters"];
 
