@@ -88,12 +88,21 @@ foreach($matrix as $parameters) {
     );
 
     $time = microtime(true);
-    $s3client->upload(
-        $config['AWS_S3_BUCKET'],
-        $config['S3_KEY_PREFIX'] . "/" . $csv->getBasename(),
-        fopen($csv->getPathname(), "r")
-    );
+    
+    do {
+        try {
+            $result = $s3client->upload(
+                $config['AWS_S3_BUCKET'],
+                $config['S3_KEY_PREFIX'] . "/" . $csv->getBasename(),
+                fopen($csv->getPathname(), "r")
+            );
+        } catch (\Aws\Exception\MultipartUploadException $e) {
+            print "Retrying upload: " . $e->getMessage();
+        }
+    } while (!isset($results));
+
     $duration = microtime(true) - $time;
+
     print "$sizeMB MB file uploaded to S3 in $duration seconds\n";
 
     /**
@@ -122,7 +131,9 @@ foreach($matrix as $parameters) {
             print "Retrying upload: " . $e->getMessage();
         }
     } while (!isset($results));
+
     $duration = microtime(true) - $time;
+
     print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
 }
 
