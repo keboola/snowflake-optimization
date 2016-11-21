@@ -29,48 +29,28 @@ $k1row = generateCell(1000, $chars);
 $k10row = generateCell(10000, $chars);
 $k100row = generateCell(100000, $chars);
 
-$matrix = [
-    [
-        "rows" => 1000,
-        "row" => [$k1row],
-        "splitFiles" => 10
-    ],
-    [
-        "rows" => 10000,
-        "row" => [$k10row],
-        "splitFiles" => 2
-    ],
-    [
-        "rows" => 100000,
-        "row" => [$k10row],
-        "splitFiles" => 2
-    ],
-    [
-        "rows" => 100000,
-        "row" => [$k10row],
-        "splitFiles" => 10
-    ],
-    [
-        "rows" => 10000,
-        "row" => [$k100row],
-        "splitFiles" => 2
-    ],
-    [
-        "rows" => 10000,
-        "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
-        "splitFiles" => 5
-    ],
-    [
-        "rows" => 80000,
-        "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
-        "splitFiles" => 50
-    ],
-    [
-        "rows" => 80000,
-        "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
-        "splitFiles" => 100
-    ]
-];
+$matrix = $config["matrix"];
+foreach ($matrix as $matrixItem) {
+    $newRow = [];
+    foreach ($matrixItem["row"] as $rowItem) {
+        switch($rowItem) {
+            case "k1row":
+                $newRow[] = $k1row;
+                break;
+            case "k10row":
+                $newRow[] = $k10row;
+                break;
+            case "k100row":
+                $newRow[] = $k100row;
+                break;
+            default:
+                throw new \Exception("invalid row indentifier");
+                break;
+        }
+    }
+    $matrixItem["row"] = $newRow;
+}
+
 
 foreach($matrix as $parameters) {
     $temp = new Keboola\Temp\Temp();
@@ -80,6 +60,7 @@ foreach($matrix as $parameters) {
     $splitFiles = [];
     for ($i = 0; $i < $parameters["splitFiles"]; $i++) {
         $splitFiles[] = new Keboola\Csv\CsvFile($temp->getTmpFolder() . "/part_{$i}.csv");
+        sleep(1);
     }
     $csv->rewind();
 
