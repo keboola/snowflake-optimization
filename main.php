@@ -147,5 +147,11 @@ foreach($matrix as $parameters) {
 
     print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
     $temp->__destruct();
+
+    // cleanup
+    unlink($csv->getPathname());
+    foreach ($splitFiles as $splitFile) {
+        unlink($splitFile->getPathname());
+    }
 }
 
