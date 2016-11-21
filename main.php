@@ -55,41 +55,6 @@ $matrix = [
     ]
 ];
 
-
-$matrix = [
-    [
-        "rows" => 1000,
-        "row" => [$k1row],
-        "splitFiles" => 10
-    ],
-    [
-        "rows" => 10000,
-        "row" => [$k10row],
-        "splitFiles" => 2
-    ]/*,
-    [
-        "rows" => 100000,
-        "row" => [$k10row],
-        "splitFiles" => 2
-    ],
-    [
-        "rows" => 100000,
-        "row" => [$k10row],
-        "splitFiles" => 10
-    ],
-    [
-        "rows" => 10000,
-        "row" => [$k100row],
-        "splitFiles" => 2
-    ],
-    [
-        "rows" => 10000,
-        "row" => [$k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row, $k10row],
-        "splitFiles" => 5
-    ]*/
-];
-
-
 foreach($matrix as $parameters) {
     $temp = new Keboola\Temp\Temp();
     $source = $temp->createFile('source.csv');
