@@ -103,7 +103,7 @@ foreach($matrix as $parameters) {
         } catch (\Aws\Exception\MultipartUploadException $e) {
             print "Retrying upload: " . $e->getMessage();
         }
-    } while (!isset($results));
+    } while (!isset($result));
 
     $duration = microtime(true) - $time;
 
