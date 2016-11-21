@@ -83,7 +83,8 @@ foreach($matrix as $parameters) {
         [
             "credentials" => $credentials,
             "region" => $config['AWS_REGION'],
-            "version" => "2006-03-01"
+            "version" => "2006-03-01",
+            "debug" => true
         ]
     );
 
@@ -123,8 +124,7 @@ foreach($matrix as $parameters) {
                     function ($reason) {
                         throw new \Exception("Upload failed: " . $reason);
                     }
-                )
-                ;
+                );
             }
             $results = GuzzleHttp\Promise\unwrap($promises);
         } catch (\Aws\Exception\MultipartUploadException $e) {
