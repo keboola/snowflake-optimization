@@ -59,7 +59,7 @@ foreach($matrix as $parameters) {
     $splitFiles = [];
     for ($i = 0; $i < $parameters["splitFiles"]; $i++) {
         $splitFiles[] = new Keboola\Csv\CsvFile($temp->getTmpFolder() . "/part_{$i}.csv");
-        sleep(1);
+        usleep(100000);
     }
     $csv->rewind();
 
@@ -88,7 +88,7 @@ foreach($matrix as $parameters) {
     );
 
     $time = microtime(true);
-    
+
     do {
         try {
             $result = $s3client->upload(
