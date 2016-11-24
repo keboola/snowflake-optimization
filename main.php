@@ -70,10 +70,8 @@ foreach($matrix as $parameters) {
     print "{$parameters["rows"]} rows with " . count($parameters["row"]) . " columns by {$rowSize} bytes ($sizeMB MB) generated in $duration seconds\n";
 
     $csvFileSplitFiles = [];
-    $csvToolSplitFiles = [];
     for ($i = 0; $i < $parameters["splitFiles"]; $i++) {
         $csvFileSplitFiles[] = new Keboola\Csv\CsvFile($temp->getTmpFolder() . "/csvfile_part_{$i}.csv");
-        $csvToolSplitFiles[] = $temp->createFile("csvtool_part_{$i}.csv");
     }
     $csv->rewind();
 
@@ -100,7 +98,6 @@ foreach($matrix as $parameters) {
     );
 
     $time = microtime(true);
-
     do {
         try {
             $result = $s3client->upload(
@@ -112,17 +109,24 @@ foreach($matrix as $parameters) {
             print "Retrying upload: " . $e->getMessage();
         }
     } while (!isset($result));
-
-
     $duration = microtime(true) - $time;
+    print "$sizeMB MB file uploaded to S3 using 'upload' method in $duration seconds\n";
 
-    print "$sizeMB MB file uploaded to S3 in $duration seconds\n";
+    $time = microtime(true);
+    $result = $s3client->putObject(
+        [
+            'Bucket' => $config['AWS_S3_BUCKET'],
+            'Key' => $config['S3_KEY_PREFIX'] . "/" . $csv->getBasename(),
+            'Body' => fopen($csv->getPathname(), "r+"),
+        ]
+    );
+    $duration = microtime(true) - $time;
+    print "$sizeMB MB file uploaded to S3 using 'putObject' method in $duration seconds\n";
 
     /**
      * @var $splitFile \Keboola\Csv\CsvFile
      */
     $time = microtime(true);
-
     // well, i have to rerun the whole thing again, as i have no idea which slices are done and slice failed
     do {
         try {
@@ -141,19 +145,32 @@ foreach($matrix as $parameters) {
             print "Retrying upload: " . $e->getMessage();
         }
     } while (!isset($finished));
-
     $duration = microtime(true) - $time;
+    print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 using 'uploadAsync' method in $duration seconds\n";
 
-    print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 in $duration seconds\n";
+    /**
+     * @var $splitFile \Keboola\Csv\CsvFile
+     */
+    $time = microtime(true);
+    $promises = [];
+    foreach ($csvFileSplitFiles as $key => $splitFile) {
+        $promises[] = $s3client->putObjectAsync(
+            [
+                'Bucket' => $config['AWS_S3_BUCKET'],
+                'Key' => $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
+                'Body' => fopen($splitFile->getPathname(), "r+"),
+            ]
+        );
+    }
+    $results = GuzzleHttp\Promise\unwrap($promises);
+    $duration = microtime(true) - $time;
+    print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 using 'putObjectAsync' method in $duration seconds\n";
+
 
     // cleanup
     unlink($csv->getPathname());
     foreach ($csvFileSplitFiles as $splitFile) {
         unlink($splitFile->getPathname());
     }
-    foreach ($csvToolSplitFiles as $splitFile) {
-        unlink($splitFile->getPathname());
-    }
-
 }
 
