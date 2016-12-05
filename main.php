@@ -52,6 +52,11 @@ foreach ($matrix as $key => $matrixItem) {
     $matrix[$key]["row"] = $newRow;
 }
 
+$chunkSize = 50;
+if (isset($config["chunkSize"])) {
+    $chunkSize = $config["chunkSize"];
+}
+
 foreach($matrix as $parameters) {
     $temp = new Keboola\Temp\Temp();
     $source = $temp->createFile('source.csv');
@@ -120,6 +125,7 @@ foreach($matrix as $parameters) {
             'Body' => fopen($csv->getPathname(), "r+"),
         ]
     );
+    // var_dump($result);
     $duration = microtime(true) - $time;
     print "$sizeMB MB file uploaded to S3 using 'putObject' method in $duration seconds\n";
 
@@ -128,43 +134,67 @@ foreach($matrix as $parameters) {
      */
     $time = microtime(true);
     // well, i have to rerun the whole thing again, as i have no idea which slices are done and slice failed
-    do {
-        try {
-            $handles = [];
-            $promises = [];
-            foreach ($csvFileSplitFiles as $key => $splitFile) {
-                $promises[] = $s3client->uploadAsync(
-                    $config['AWS_S3_BUCKET'],
-                    $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
-                    fopen($splitFile->getPathname(), "r")
-                );
+    // splice files into chunks
+    $chunks = ceil(count($csvFileSplitFiles) / $chunkSize);
+    for ($i = 0; $i < $chunks; $i++) {
+        $csvFileSplitFilesChunk = array_slice($csvFileSplitFiles, $i * $chunkSize, $chunkSize);
+        $finished = false;
+        do {
+            try {
+                $handles = [];
+                $promises = [];
+                foreach ($csvFileSplitFilesChunk as $key => $splitFile) {
+                    $handle = fopen($splitFile->getPathname(), "r");
+                    $handles[] = $handle;
+                    $promises[] = $s3client->uploadAsync(
+                        $config['AWS_S3_BUCKET'],
+                        $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
+                        $handle
+                    );
+                }
+                $results = GuzzleHttp\Promise\unwrap($promises);
+                // var_dump($results);
+                foreach ($handles as $handle) {
+                    fclose($handle);
+                }
+                $finished = true;
+            } catch (\Aws\Exception\MultipartUploadException $e) {
+                print "Retrying upload: " . $e->getMessage();
             }
-            $results = GuzzleHttp\Promise\unwrap($promises);
-            $finished = true;
-        } catch (\Aws\Exception\MultipartUploadException $e) {
-            print "Retrying upload: " . $e->getMessage();
-        }
-    } while (!isset($finished));
+        } while (!isset($finished));
+    }
     $duration = microtime(true) - $time;
-    print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 using 'uploadAsync' method in $duration seconds\n";
+    print "$sizeMB MB split into {$parameters["splitFiles"]} files ({$chunks} chunks) uploaded to S3 using 'uploadAsync' method in $duration seconds\n";
 
     /**
      * @var $splitFile \Keboola\Csv\CsvFile
      */
     $time = microtime(true);
-    $promises = [];
-    foreach ($csvFileSplitFiles as $key => $splitFile) {
-        $promises[] = $s3client->putObjectAsync(
-            [
-                'Bucket' => $config['AWS_S3_BUCKET'],
-                'Key' => $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
-                'Body' => fopen($splitFile->getPathname(), "r+"),
-            ]
-        );
+    $chunks = ceil(count($csvFileSplitFiles) / $chunkSize);
+    for ($i = 0; $i < $chunks; $i++) {
+        $csvFileSplitFilesChunk = array_slice($csvFileSplitFiles, $i * $chunkSize, $chunkSize);
+
+        $promises = [];
+        $handles = [];
+
+        foreach ($csvFileSplitFilesChunk as $key => $splitFile) {
+            $handle = fopen($splitFile->getPathname(), "r+");
+            $handles[] = $handle;
+            $promises[] = $s3client->putObjectAsync(
+                [
+                    'Bucket' => $config['AWS_S3_BUCKET'],
+                    'Key' => $config['S3_KEY_PREFIX'] . "/" . $splitFile->getBasename(),
+                    'Body' => $handle,
+                ]
+            );
+        }
+        $results = GuzzleHttp\Promise\unwrap($promises);
+        foreach ($handles as $handle) {
+            fclose($handle);
+        }
     }
-    $results = GuzzleHttp\Promise\unwrap($promises);
     $duration = microtime(true) - $time;
-    print "$sizeMB MB split into {$parameters["splitFiles"]} files uploaded to S3 using 'putObjectAsync' method in $duration seconds\n";
+    print "$sizeMB MB split into {$parameters["splitFiles"]} files ({$chunks} chunks) uploaded to S3 using 'putObjectAsync' method in $duration seconds\n";
 
 
     // cleanup
